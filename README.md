@@ -25,7 +25,7 @@ BrainShelf is a personal knowledge organizer — your digital second brain. Save
 - JWT for authentication
 - Zod for validation
 
-## 🧑‍💻 Local Development
+## Local Development
 
 ```bash
 git clone https://github.com/Sarthakkad05/BrainShelf.git

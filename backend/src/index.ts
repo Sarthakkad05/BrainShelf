@@ -12,7 +12,7 @@ interface RequestWithUserId extends Request {
   userId?: string;
 }
 
-mongoose.connect("mongodb+srv://Sarthakkad14:sfwsQ-Kh_VW7pif@cluster0.nel8j.mongodb.net/secondBrain");
+mongoose.connect("mongodb://localhost:27017/secondBrain");
 
 const app = express();
 app.use(express.json());

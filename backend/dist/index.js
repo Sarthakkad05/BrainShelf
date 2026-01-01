@@ -20,13 +20,12 @@ const cors_1 = __importDefault(require("cors"));
 const auth_1 = require("./auth");
 const db_1 = require("./db");
 const utils_1 = require("./utils");
-mongoose_1.default.connect("mongodb+srv://Sarthakkad14:sfwsQ-Kh_VW7pif@cluster0.nel8j.mongodb.net/secondBrain");
+mongoose_1.default.connect("mongodb://localhost:27017/secondBrain");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cors_1.default)());
 const userProfileSchema = zod_1.z.object({
-    username: zod_1.z.string().min(3, "Username must be at least 3 characters long")
-        .max(10, "Username must not be more than 10 characters long"),
+    username: zod_1.z.string().min(3, "Username must be at least 3 characters long"),
     password: zod_1.z.string().min(8, "Password must be at least 8 characters long")
         .max(20)
         .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
@@ -44,8 +43,9 @@ app.post('/api/v1/signup', (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const existingUser = yield db_1.UserModel.findOne({ username: updatedBody.username });
         if (!existingUser) {
-            yield db_1.UserModel.create(updatedBody);
-            res.status(200).json({ msg: "Signed up" });
+            const user = yield db_1.UserModel.create(updatedBody);
+            const token = jsonwebtoken_1.default.sign({ id: user._id }, auth_1.JWT_SECRET);
+            res.status(200).json({ msg: "Signed up", token });
         }
         else {
             res.status(403).json({ msg: "User already exists with this username" });
@@ -109,8 +109,27 @@ app.post("/api/v1/content", auth_1.authMiddleware, (req, res) => __awaiter(void 
     }
 }));
 app.get('/api/v1/content', auth_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const content = yield db_1.ContentModel.find({ userId: req.userId }).populate("tags").populate("userId", "username");
-    res.json({ content });
+    const { search } = req.query;
+    const userId = req.userId;
+    let query = { userId };
+    if (search) {
+        const regex = new RegExp(search, 'i'); // case-insensitive
+        query = {
+            userId,
+            $or: [
+                { title: regex },
+                // Match by tag title (requires .populate and post-filter)
+            ]
+        };
+    }
+    let contents = yield db_1.ContentModel.find(query).populate("tags").populate("userId", "username");
+    // Additional filter for tags if search is used
+    if (search) {
+        const searchStr = search.toLowerCase();
+        contents = contents.filter(content => content.tags.some(tag => tag.title.toLowerCase().includes(searchStr)) ||
+            content.title.toLowerCase().includes(searchStr));
+    }
+    res.json({ content: contents });
 }));
 app.delete('/api/v1/content', auth_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const contentId = req.body.contentId;

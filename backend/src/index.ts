@@ -4,7 +4,7 @@ import { z } from "zod";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 
-import { authMiddleware, JWT_SECRET } from './auth';
+import { authMiddleware } from './auth';
 import { ContentModel, LinkModel, TagModel, UserModel } from './db';
 import { random } from './utils';
 
@@ -12,7 +12,11 @@ interface RequestWithUserId extends Request {
   userId?: string;
 }
 
-mongoose.connect("mongodb://localhost:27017/secondBrain");
+mongoose.connect(process.env.MONGODB_URI as string);
+
+if (!process.env.MONGODB_URI) {
+  throw new Error("MONGODB_URI is not set");
+}
 
 const app = express();
 app.use(express.json());
@@ -31,6 +35,10 @@ const userProfileSchema = z.object({
 
 type FinalUserSchema = z.infer<typeof userProfileSchema>;
 
+app.get('/api/v1/health', (req: Request, res: Response) => {
+  res.json({ status: "ok" });
+});
+
 app.post('/api/v1/signup', async (req: Request, res: Response) => {
   const parsed = userProfileSchema.safeParse(req.body);
   const updatedBody: FinalUserSchema = req.body;
@@ -44,7 +52,7 @@ app.post('/api/v1/signup', async (req: Request, res: Response) => {
     const existingUser = await UserModel.findOne({ username: updatedBody.username });
     if (!existingUser) {
       const user = await UserModel.create(updatedBody);
-      const token = jwt.sign({ id: user._id }, JWT_SECRET);
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string);
       
     res.status(200).json({ msg: "Signed up", token });
     } else {
@@ -68,7 +76,7 @@ app.post('/api/v1/signin', async (req: Request, res: Response) => {
     if (!user) {
       res.status(403).json({ msg: "Wrong username or password" });
     } else {
-      const token = jwt.sign({ id: user._id }, JWT_SECRET);
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string);
       res.json({ token });
     }
   } catch (error) {
@@ -197,7 +205,8 @@ app.delete('/api/v1/brain/:shareLink', async (req: Request, res: Response) => {
   res.json({ msg: `You accessed shared link: ${hash}` });
 });
 
+const PORT = process.env.PORT || 3000;
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+app.listen(PORT , () => {
+  console.log(`Server is running on port ${PORT}`);
 });

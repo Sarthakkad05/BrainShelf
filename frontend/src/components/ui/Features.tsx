@@ -4,7 +4,7 @@ import websiteImageL from "../../icons/website3.png"
 
 
 export const Features = () => {
-    const { isDark, toggleTheme } = useTheme();
+    const { isDark } = useTheme();
   
   return (
     <div className="px-4 sm:px-8 md:px-20">

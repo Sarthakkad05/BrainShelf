@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-export const JWT_SECRET = "Sarthakkad@07"; 
+export const JWT_SECRET = process.env.JWT_SECRET; 
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set");
+}
+
 interface RequestWithUserId extends Request {
   userId?: string;
 }
